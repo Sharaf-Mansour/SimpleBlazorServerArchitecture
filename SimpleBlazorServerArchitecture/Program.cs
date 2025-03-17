@@ -7,6 +7,8 @@ global using Dapper;
 using Scalar.AspNetCore;
 using Arora.GlobalExceptionHandler;
 using Library.Components;
+using Arora.Blazor.StateContainer;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 var appVersion = builder.Configuration.GetValue<string>("AppVersion") ?? "1.0.0";
@@ -14,7 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddTransient<IAuthorService, AuthorService>();
 builder.Services.AddTransient<IBookService, BookService>();
 builder.Services.AddTransient<IStorageBroker, StorageBroker>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi().AddStateContainer();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -22,6 +24,29 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+    Process.Start(new ProcessStartInfo
+    {
+        FileName = "cmd.exe",
+        Arguments = "/K bunx @tailwindcss/cli -i ./wwwroot/app.css -o ./wwwroot/style.css --watch --minify",
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+        CreateNoWindow = false
+    });
+
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    if (app.Environment.IsDevelopment())
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = "/C taskkill /IM node.exe /F\r\n",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+});
 app.MapOpenApi();
 
 app.MapScalarApiReference(options =>
